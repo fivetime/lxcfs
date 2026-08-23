@@ -479,6 +479,26 @@ static bool read_cpu_count_cfs(const char *cg, double *value)
  * @param rv
  * @return true on success.
  */
+static bool cgroup_parent(char *cgroup)
+{
+	size_t len = strlen(cgroup);
+	char *slash;
+
+	while (len > 1 && cgroup[len - 1] == '/')
+		cgroup[--len] = '\0';
+
+	slash = strrchr(cgroup, '/');
+	if (!slash)
+		return false;
+
+	if (slash == cgroup)
+		cgroup[1] = '\0';
+	else
+		*slash = '\0';
+
+	return true;
+}
+
 static bool get_min_cpu_count_cfs(const char *cgroup, double *rv)
 {
 	__do_free char *cur_sg = strdup(cgroup);
@@ -493,8 +513,8 @@ static bool get_min_cpu_count_cfs(const char *cgroup, double *rv)
 			}
 		}
 
-		char *parent = dirname(cur_sg); // walk up
-		if (strcmp(parent, ".") == 0) break; // in this case parent != cur_sg
+		if (!cgroup_parent(cur_sg))
+			break;
 	} while (strcmp(cur_sg, "/") != 0);
 	return got;
 }
